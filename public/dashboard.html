@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Authentication System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .user-info {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .user-info p {
+            margin: 5px 0;
+        }
+        .logout-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-btn:hover {
+            background-color: #c82333;
+        }
+        .welcome-message {
+            color: #28a745;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Dashboard</h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+        
+        <div class="welcome-message">
+            <h2>Welcome to your Dashboard!</h2>
+        </div>
+
+        <div class="user-info">
+            <h3>Your Profile Information</h3>
+            <div id="userDetails">
+                Loading...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check if user is logged in
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/';
+        }
+
+        // Fetch user details
+        async function fetchUserDetails() {
+            try {
+                const response = await fetch('/auth/users', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const users = await response.json();
+                    const currentUser = users.find(user => user.email === localStorage.getItem('userEmail'));
+                    if (currentUser) {
+                        displayUserDetails(currentUser);
+                    } else {
+                        document.getElementById('userDetails').innerHTML = 'User not found';
+                    }
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to fetch user details');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('userDetails').innerHTML = `
+                    <div style="color: red;">
+                        <p>Error: ${error.message}</p>
+                        <p>Please try logging out and logging in again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Display user details
+        function displayUserDetails(user) {
+            const userDetails = document.getElementById('userDetails');
+            userDetails.innerHTML = `
+                <p><strong>Username:</strong> ${user.username}</p>
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Name:</strong> ${user.firstName} ${user.lastName}</p>
+                <p><strong>Mobile Number:</strong> ${user.mobileNumber}</p>
+                <p><strong>Gender:</strong> ${user.gender}</p>
+            `;
+        }
+
+        // Logout function
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('userEmail');
+            window.location.href = '/';
+        }
+
+        // Fetch user details when page loads
+        fetchUserDetails();
+    </script>
+</body>
+</html> 

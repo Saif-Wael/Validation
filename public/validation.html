@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Validation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: red;
+            margin-top: 5px;
+        }
+        .success {
+            color: green;
+            margin-top: 5px;
+        }
+        .validation-results {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .validation-item {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .validation-item:last-child {
+            border-bottom: none;
+        }
+        .valid {
+            color: green;
+        }
+        .invalid {
+            color: red;
+        }
+        .tabs {
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 5px;
+            text-decoration: none;
+            color: black;
+        }
+        .tab.active {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Data Validation</h1>
+        <p>Enter your data below to validate it according to our rules.</p>
+        
+        <div class="tabs">
+            <a href="/login" class="tab">Login</a>
+            <a href="/register" class="tab">Register</a>
+            <a href="/validate" class="tab active">Validate Data</a>
+        </div>
+        
+        <form id="validationForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="form-group">
+                <label for="firstName">First Name:</label>
+                <input type="text" id="firstName" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name:</label>
+                <input type="text" id="lastName" required>
+            </div>
+            <div class="form-group">
+                <label for="mobileNumber">Mobile Number:</label>
+                <input type="tel" id="mobileNumber" required>
+            </div>
+            <div class="form-group">
+                <label for="gender">Gender:</label>
+                <select id="gender" required>
+                    <option value="">Select Gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <button type="submit">Validate Data</button>
+            <button type="button" onclick="window.location.href='/login'">Back to Login</button>
+        </form>
+
+        <div id="validationResults" class="validation-results" style="display: none;">
+            <h2>Validation Results</h2>
+            <div id="resultsContent"></div>
+            <div id="updateSection" style="display: none; margin-top: 20px;">
+                <button id="updateButton" class="update-btn">Update Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('validationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                mobileNumber: document.getElementById('mobileNumber').value,
+                gender: document.getElementById('gender').value
+            };
+
+            try {
+                const response = await fetch('/auth/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Validation failed');
+                }
+
+                const results = await response.json();
+                displayResults(results, userData);
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred during validation');
+            }
+        });
+
+        function displayResults(results, userData) {
+            const resultsDiv = document.getElementById('validationResults');
+            const contentDiv = document.getElementById('resultsContent');
+            const updateSection = document.getElementById('updateSection');
+            contentDiv.innerHTML = '';
+
+            let allValid = true;
+
+            for (const [field, result] of Object.entries(results)) {
+                const div = document.createElement('div');
+                div.className = 'validation-item';
+                div.innerHTML = `
+                    <strong>${field}:</strong> 
+                    <span class="${result.isValid ? 'valid' : 'invalid'}">
+                        ${result.isValid ? '✓ Valid' : '✗ Invalid'}
+                    </span>
+                    ${result.message ? `<p>${result.message}</p>` : ''}
+                `;
+                contentDiv.appendChild(div);
+
+                if (!result.isValid) {
+                    allValid = false;
+                }
+            }
+
+            // Show update button only if all validations pass
+            updateSection.style.display = allValid ? 'block' : 'none';
+            resultsDiv.style.display = 'block';
+        }
+
+        // Add event listener for update button
+        document.getElementById('updateButton').addEventListener('click', async () => {
+            const userData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                firstName: document.getElementById('firstName').value,
+                lastName: document.getElementById('lastName').value,
+                mobileNumber: document.getElementById('mobileNumber').value,
+                gender: document.getElementById('gender').value
+            };
+
+            try {
+                const response = await fetch('/auth/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.message || 'Failed to update data');
+                }
+
+                alert('Data updated successfully!');
+                window.location.href = '/login';
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'An error occurred while updating data');
+            }
+        });
+    </script>
+</body>
+</html> 
